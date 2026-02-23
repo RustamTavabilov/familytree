@@ -1,0 +1,586 @@
+{% extends 'tree/base.html' %}
+{% load static %}
+
+{% block title %}Родословное древо{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1>🌳 Родословное древо</h1>
+            <div>
+                <span class="badge bg-info me-2" id="node-counter"></span>
+                <button id="zoomIn" class="btn btn-sm btn-outline-primary">+</button>
+                <button id="zoomOut" class="btn btn-sm btn-outline-primary">−</button>
+                <button id="resetView" class="btn btn-sm btn-outline-secondary">Сброс</button>
+            </div>
+        </div>
+
+        <!-- Информационная панель -->
+        <div class="alert alert-info" id="info-panel">
+            <span id="selected-person-info">Нажмите на человека, чтобы увидеть информацию</span>
+        </div>
+
+        <!-- Контейнер для дерева -->
+        <div id="tree-container" style="width: 100%; height: 700px; border: 1px solid #ddd; background-color: #f8f9fa; position: relative; overflow: hidden;">
+            <div id="loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.1); z-index: 1000;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Загрузка...</span>
+                </div>
+                <p class="mt-2">Загрузка родословного древа...</p>
+            </div>
+        </div>
+
+        <!-- Инструкция -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>📐 Вертикальная иерархия:</h6>
+                        <ul class="list-unstyled small">
+                            <li>• 👴👵 Прабабушки/прадедушки: <strong>-3 и выше</strong></li>
+                            <li>• 👵👴 Бабушки/дедушки: <strong>-2</strong></li>
+                            <li>• 👨👩 Родители: <strong>-1</strong></li>
+                            <li>• 👑 Корневая анкета: <strong>0</strong></li>
+                            <li>• 👦👧 Дети: <strong>+1</strong></li>
+                            <li>• 👶 Внуки: <strong>+2</strong></li>
+                            <li>• 🍼 Правнуки: <strong>+3 и ниже</strong></li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>🖱️ Управление:</h6>
+                        <ul class="list-unstyled small">
+                            <li>• 👑 - Это вы (текущий пользователь)</li>
+                            <li>• 🟢 Мужчины, 🟠 Женщины</li>
+                            <li>• ⚭ Красный пунктир - супруги</li>
+                            <li>• 🌟 Кнопка "Сделать корнем" - перестроить дерево</li>
+                            <li>• Двойной клик - сделать центральным</li>
+                            <li>• Перетаскивание - перемещение</li>
+                            <li>• Колесо мыши - масштаб</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://d3js.org/d3.v7.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let treeData = null;
+
+    // Размеры узлов
+    const NODE_WIDTH = 140;
+    const NODE_HEIGHT = 80;
+    const VERTICAL_SPACING = 120;
+
+    const width = document.getElementById('tree-container').clientWidth;
+    const height = 700;
+
+    // Очищаем и создаем SVG
+    d3.select("#tree-container").selectAll("svg").remove();
+
+    const svg = d3.select("#tree-container")
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .style("background-color", "#f8f9fa");
+
+    const g = svg.append("g");
+
+    // Масштабирование
+    const zoom = d3.zoom()
+        .scaleExtent([0.3, 2])
+        .on("zoom", (event) => {
+            g.attr("transform", event.transform);
+        });
+
+    svg.call(zoom);
+
+    // Загрузка данных
+    function loadTreeData(rootId = null) {
+        document.getElementById('loading').style.display = 'block';
+
+        let url = '/api/tree-data/';
+        if (rootId) {
+            url = `/api/tree-data/${rootId}/`;
+        }
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading').style.display = 'none';
+
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+
+                treeData = data;
+                document.getElementById('node-counter').textContent =
+                    `Всего людей: ${data.profiles.length} | Корень: ${data.root_name || 'Вы'}`;
+
+                renderTree(data);
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                console.error('Ошибка:', error);
+                showError('Ошибка загрузки данных');
+            });
+    }
+
+    // Отрисовка дерева с симметричным размещением
+    function renderTree(data) {
+        g.selectAll("*").remove();
+
+        if (!data.profiles || data.profiles.length === 0) {
+            g.append("text")
+                .attr("x", width / 2)
+                .attr("y", height / 2)
+                .attr("text-anchor", "middle")
+                .text("Нет данных для отображения")
+                .style("font-size", "16px")
+                .style("fill", "#666");
+            return;
+        }
+
+        // Карта профилей
+        const profileMap = new Map();
+        data.profiles.forEach(p => {
+            profileMap.set(p.id, p);
+        });
+
+        // ПОКОЛЕНИЯ
+        const generations = data.generations || {};
+
+        // Находим минимальное и максимальное поколение
+        let minGen = 0, maxGen = 0;
+        Object.values(generations).forEach(gen => {
+            minGen = Math.min(minGen, gen);
+            maxGen = Math.max(maxGen, gen);
+        });
+
+        // Фиксированные Y координаты по поколениям
+        const nodeMap = new Map();
+        data.profiles.forEach(p => {
+            p.y = (generations[p.id] - minGen) * (NODE_HEIGHT + VERTICAL_SPACING) + 100;
+            nodeMap.set(p.id, p);
+        });
+
+        // Строим связи родитель-ребенок (для определения иерархии)
+        const childrenMap = new Map(); // parentId -> [childIds]
+        const parentMap = new Map();   // childId -> [parentIds]
+
+        data.relationships.forEach(rel => {
+            if (rel.type === 'son' || rel.type === 'daughter') {
+                // from - родитель, to - ребенок
+                if (!childrenMap.has(rel.from_id)) childrenMap.set(rel.from_id, []);
+                childrenMap.get(rel.from_id).push(rel.to_id);
+
+                if (!parentMap.has(rel.to_id)) parentMap.set(rel.to_id, []);
+                parentMap.get(rel.to_id).push(rel.from_id);
+            }
+            if (rel.type === 'mother' || rel.type === 'father') {
+                // from - родитель, to - ребенок (та же логика)
+                if (!childrenMap.has(rel.from_id)) childrenMap.set(rel.from_id, []);
+                childrenMap.get(rel.from_id).push(rel.to_id);
+
+                if (!parentMap.has(rel.to_id)) parentMap.set(rel.to_id, []);
+                parentMap.get(rel.to_id).push(rel.from_id);
+            }
+        });
+
+        // Супружеские пары
+        const spouses = data.spouses || [];
+
+        // === АЛГОРИТМ СИММЕТРИЧНОГО РАЗМЕЩЕНИЯ ===
+        // 1. Назначаем предварительные X на основе поколения и порядка
+        // 2. Итеративно корректируем, чтобы дети были под родителями
+
+        // Сортируем профили по поколению и ID для начальной расстановки
+        const sortedProfiles = [...data.profiles].sort((a, b) => {
+            if (generations[a.id] !== generations[b.id])
+                return generations[a.id] - generations[b.id];
+            return a.id - b.id;
+        });
+
+        // Группируем по поколениям
+        const genGroups = {};
+        sortedProfiles.forEach(p => {
+            const gen = generations[p.id];
+            if (!genGroups[gen]) genGroups[gen] = [];
+            genGroups[gen].push(p);
+        });
+
+        // Начальные X: равномерно по поколению
+        Object.keys(genGroups).forEach(gen => {
+            const people = genGroups[gen];
+            people.forEach((p, idx) => {
+                p.x = (idx + 0.5) * (NODE_WIDTH + 30) + 50;
+            });
+        });
+
+        // Итеративная коррекция (10 проходов)
+        for (let iter = 0; iter < 10; iter++) {
+            // Проход сверху вниз: дети подстраиваются под родителей
+            for (let gen = minGen; gen <= maxGen; gen++) {
+                const people = genGroups[gen] || [];
+                people.forEach(p => {
+                    const parents = parentMap.get(p.id) || [];
+                    if (parents.length > 0) {
+                        // Средняя позиция родителей
+                        let parentX = 0;
+                        parents.forEach(pid => {
+                            const parent = nodeMap.get(pid);
+                            if (parent) parentX += parent.x;
+                        });
+                        parentX /= parents.length;
+
+                        // Тянем ребенка к этой позиции
+                        p.x += (parentX - p.x) * 0.3;
+                    }
+                });
+            }
+
+            // Проход снизу вверх: родители подстраиваются под детей
+            for (let gen = maxGen; gen >= minGen; gen--) {
+                const people = genGroups[gen] || [];
+                people.forEach(p => {
+                    const children = childrenMap.get(p.id) || [];
+                    if (children.length > 0) {
+                        // Средняя позиция детей
+                        let childX = 0;
+                        children.forEach(cid => {
+                            const child = nodeMap.get(cid);
+                            if (child) childX += child.x;
+                        });
+                        childX /= children.length;
+
+                        // Тянем родителя к центру детей
+                        p.x += (childX - p.x) * 0.3;
+                    }
+                });
+            }
+
+            // Корректировка супругов: они должны быть рядом
+            spouses.forEach(pair => {
+                const p1 = nodeMap.get(pair[0]);
+                const p2 = nodeMap.get(pair[1]);
+                if (p1 && p2) {
+                    const avgX = (p1.x + p2.x) / 2;
+                    p1.x += (avgX - p1.x) * 0.5;
+                    p2.x += (avgX - p2.x) * 0.5;
+                }
+            });
+        }
+
+        // Финальная корректировка: раздвигаем перекрывающихся
+        for (let gen = minGen; gen <= maxGen; gen++) {
+            const people = genGroups[gen] || [];
+            // Сортируем по X
+            people.sort((a, b) => a.x - b.x);
+
+            // Раздвигаем, если слишком близко
+            for (let i = 1; i < people.length; i++) {
+                const minDist = NODE_WIDTH + 20;
+                const prev = people[i-1];
+                const curr = people[i];
+                if (curr.x - prev.x < minDist) {
+                    curr.x = prev.x + minDist;
+                }
+            }
+        }
+
+        // Центрируем каждое поколение по горизонтали
+        Object.keys(genGroups).forEach(gen => {
+            const people = genGroups[gen];
+            if (people.length === 0) return;
+            const minX = Math.min(...people.map(p => p.x));
+            const maxX = Math.max(...people.map(p => p.x));
+            const shift = (width - (maxX - minX + NODE_WIDTH)) / 2 - minX;
+            people.forEach(p => p.x += shift);
+        });
+
+        // ===== РИСУЕМ СВЯЗИ =====
+
+        // Родитель-ребенок (вертикальные линии)
+        data.relationships.forEach(rel => {
+            if (!['mother', 'father', 'son', 'daughter'].includes(rel.type)) return;
+
+            const from = nodeMap.get(rel.from_id);
+            const to = nodeMap.get(rel.to_id);
+            if (!from || !to) return;
+
+            // Определяем родителя (выше) и ребенка (ниже)
+            const parent = from.y < to.y ? from : to;
+            const child = from.y < to.y ? to : from;
+
+            // Вертикальная линия от родителя
+            g.append("line")
+                .attr("x1", parent.x + NODE_WIDTH/2)
+                .attr("y1", parent.y + NODE_HEIGHT)
+                .attr("x2", parent.x + NODE_WIDTH/2)
+                .attr("y2", child.y)
+                .style("stroke", "#2ecc71")
+                .style("stroke-width", 2);
+
+            // Горизонтальная линия к ребенку
+            g.append("line")
+                .attr("x1", parent.x + NODE_WIDTH/2)
+                .attr("y1", child.y)
+                .attr("x2", child.x + NODE_WIDTH/2)
+                .attr("y2", child.y)
+                .style("stroke", "#2ecc71")
+                .style("stroke-width", 2);
+
+            // Круг в точке соединения
+            g.append("circle")
+                .attr("cx", child.x + NODE_WIDTH/2)
+                .attr("cy", child.y)
+                .attr("r", 3)
+                .style("fill", "#2ecc71");
+        });
+
+        // Супружеские связи
+        spouses.forEach(pair => {
+            const p1 = nodeMap.get(pair[0]);
+            const p2 = nodeMap.get(pair[1]);
+            if (!p1 || !p2) return;
+
+            g.append("line")
+                .attr("x1", p1.x + NODE_WIDTH/2)
+                .attr("y1", p1.y + NODE_HEIGHT/2)
+                .attr("x2", p2.x + NODE_WIDTH/2)
+                .attr("y2", p2.y + NODE_HEIGHT/2)
+                .style("stroke", "#e74c3c")
+                .style("stroke-width", 2)
+                .style("stroke-dasharray", "5,5");
+
+            g.append("text")
+                .attr("x", (p1.x + p2.x + NODE_WIDTH) / 2)
+                .attr("y", (p1.y + p2.y + NODE_HEIGHT) / 2 - 15)
+                .attr("text-anchor", "middle")
+                .text("⚭")
+                .style("font-size", "20px")
+                .style("fill", "#e74c3c");
+        });
+
+        // ===== РИСУЕМ ЛЮДЕЙ =====
+        data.profiles.forEach(person => {
+            const x = person.x;
+            const y = person.y;
+
+            const nodeGroup = g.append("g")
+                .attr("transform", `translate(${x}, ${y})`)
+                .style("cursor", "pointer")
+                .on("click", () => showPersonInfo(person))
+                .on("dblclick", () => loadTreeData(person.id));
+
+            // Поколение
+            const gen = generations[person.id] || 0;
+
+            // Фон
+            nodeGroup.append("rect")
+                .attr("width", NODE_WIDTH)
+                .attr("height", NODE_HEIGHT)
+                .attr("rx", 10)
+                .attr("ry", 10)
+                .style("fill", person.id === data.current_user_id ? "#ff6b6b" :
+                                 person.gender === 'female' ? "#ff9f43" : "#4ecdc4")
+                .style("stroke", person.id === data.root_id ? "#f1c40f" : "#fff")
+                .style("stroke-width", person.id === data.root_id ? 4 : 2)
+                .style("opacity", 0.9);
+
+            // Имя
+            nodeGroup.append("text")
+                .attr("x", NODE_WIDTH/2)
+                .attr("y", 25)
+                .attr("text-anchor", "middle")
+                .text(person.first_name || "")
+                .style("fill", "white")
+                .style("font-weight", "bold")
+                .style("font-size", "14px");
+
+            // Фамилия
+            nodeGroup.append("text")
+                .attr("x", NODE_WIDTH/2)
+                .attr("y", 45)
+                .attr("text-anchor", "middle")
+                .text(person.last_name || "")
+                .style("fill", "white")
+                .style("font-size", "12px");
+
+            // Год рождения
+            if (person.birth_year) {
+                nodeGroup.append("text")
+                    .attr("x", NODE_WIDTH/2)
+                    .attr("y", 65)
+                    .attr("text-anchor", "middle")
+                    .text(`📅 ${person.birth_year}`)
+                    .style("fill", "white")
+                    .style("font-size", "11px");
+            }
+
+            // Поколение (маленькая цифра)
+            nodeGroup.append("text")
+                .attr("x", 5)
+                .attr("y", 20)
+                .text(gen)
+                .style("fill", "white")
+                .style("font-size", "12px")
+                .style("font-weight", "bold")
+                .style("opacity", 0.7);
+
+            // Корона для текущего пользователя
+            if (person.id === data.current_user_id) {
+                nodeGroup.append("text")
+                    .attr("x", NODE_WIDTH - 10)
+                    .attr("y", 25)
+                    .attr("text-anchor", "end")
+                    .text("👑")
+                    .style("font-size", "20px");
+            }
+
+            // Звезда для корневой анкеты
+            if (person.id === data.root_id && person.id !== data.current_user_id) {
+                nodeGroup.append("text")
+                    .attr("x", NODE_WIDTH - 10)
+                    .attr("y", 45)
+                    .attr("text-anchor", "end")
+                    .text("⭐")
+                    .style("font-size", "16px");
+            }
+        });
+
+        // Центрируем весь граф
+        setTimeout(() => {
+            try {
+                const bounds = g.node().getBBox();
+                if (bounds.width > 0 && bounds.height > 0) {
+                    const scale = Math.min(
+                        width / (bounds.width + 100),
+                        height / (bounds.height + 100),
+                        0.8
+                    );
+
+                    svg.transition().duration(750).call(
+                        zoom.transform,
+                        d3.zoomIdentity
+                            .translate(
+                                Math.max(0, width/2 - (bounds.x + bounds.width/2) * scale),
+                                Math.max(0, height/2 - (bounds.y + bounds.height/2) * scale)
+                            )
+                            .scale(scale)
+                    );
+                }
+            } catch (e) {
+                console.log('Centering error:', e);
+            }
+        }, 100);
+    }
+
+    // Функция отображения информации о человеке
+    function showPersonInfo(person) {
+        const infoPanel = document.getElementById('selected-person-info');
+        const gen = treeData?.generations[person.id] || 0;
+
+        let genText = '';
+        if (gen < 0) genText = ` ⬆ ${Math.abs(gen)} поколение ВЫШЕ`;
+        if (gen > 0) genText = ` ⬇ ${gen} поколение НИЖЕ`;
+        if (gen === 0) genText = ' ● КОРНЕВАЯ АНКЕТА';
+
+        let html = `<strong>${person.full_name || person.first_name + ' ' + person.last_name}</strong>`;
+        html += genText;
+
+        if (person.id === treeData?.current_user_id) html += ' 👑 Это вы';
+
+        html += `<br><small>Текущий корень: ${treeData?.root_name || 'Вы'}</small>`;
+        html += ` <button onclick="window.location.href='/tree/?root=${person.id}'"
+                         class="btn btn-sm btn-outline-primary mt-2">
+                    🌟 Сделать корнем дерева
+                  </button>`;
+
+        infoPanel.innerHTML = html;
+    }
+
+    // Показ ошибки
+    function showError(message) {
+        const container = document.getElementById('tree-container');
+        const errorDiv = document.createElement('div');
+        errorDiv.style.position = 'absolute';
+        errorDiv.style.top = '50%';
+        errorDiv.style.left = '50%';
+        errorDiv.style.transform = 'translate(-50%, -50%)';
+        errorDiv.style.background = 'white';
+        errorDiv.style.padding = '20px';
+        errorDiv.style.borderRadius = '10px';
+        errorDiv.style.boxShadow = '0 0 20px rgba(0,0,0,0.1)';
+        errorDiv.style.zIndex = '1000';
+        errorDiv.innerHTML = `<div class="alert alert-danger mb-0">${message}</div>`;
+        container.appendChild(errorDiv);
+    }
+
+    // Управление масштабом
+    document.getElementById('zoomIn').addEventListener('click', () => {
+        zoom.scaleBy(svg.transition().duration(750), 1.3);
+    });
+
+    document.getElementById('zoomOut').addEventListener('click', () => {
+        zoom.scaleBy(svg.transition().duration(750), 0.7);
+    });
+
+    document.getElementById('resetView').addEventListener('click', () => {
+        svg.transition().duration(750).call(
+            zoom.transform,
+            d3.zoomIdentity
+        );
+    });
+
+    // Загружаем данные при старте
+    const urlParams = new URLSearchParams(window.location.search);
+    const rootId = urlParams.get('root');
+    loadTreeData(rootId ? parseInt(rootId) : null);
+});
+
+// Глобальная функция для перезагрузки с новым корнем
+window.loadTreeData = function(rootId) {
+    window.location.href = rootId ? `/tree/?root=${rootId}` : '/tree/';
+};
+</script>
+
+<style>
+    .node rect:hover {
+        stroke: #333 !important;
+        stroke-width: 3px !important;
+        filter: drop-shadow(0 0 10px rgba(0,0,0,0.3));
+        transition: all 0.3s;
+    }
+
+    #tree-container {
+        overflow: hidden;
+        position: relative;
+    }
+
+    #loading {
+        z-index: 1000;
+    }
+
+    .node text {
+        pointer-events: none;
+        user-select: none;
+    }
+
+    line {
+        pointer-events: none;
+    }
+
+    .spinner-border {
+        width: 3rem;
+        height: 3rem;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends 'tree/base.html' %}
+
+{% block title %}Мои родственники{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Мои родственники</h1>
+            <a href="{% url 'add_relative' %}" class="btn btn-primary">
+                + Добавить родственника
+            </a>
+        </div>
+        
+        <!-- Информация о текущем пользователе -->
+        <div class="alert alert-secondary mb-4">
+            <strong>Вы:</strong> {{ user_profile.get_full_name|default:"Имя не указано" }}
+            {% if user_profile.birth_date %}
+                ({{ user_profile.birth_date|date:"d.m.Y" }})
+            {% endif %}
+        </div>
+
+        {% if relatives %}
+            <div class="row">
+                {% for relative in relatives %}
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ relative.get_full_name|default:"Без имени" }}</h5>
+
+                                {% if relative.birth_date %}
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            📅 {{ relative.birth_date|date:"d.m.Y" }}
+                                        </small>
+                                    </p>
+                                {% endif %}
+
+                                <!-- Отображаем связи -->
+                                <div class="mt-2 mb-3">
+                                    <strong>Связи:</strong>
+                                    <ul class="list-unstyled mt-2">
+                                        {% for rel in relative.incoming_relationships.all %}
+                                            {% if rel.person_from.user == request.user %}
+                                                <li>
+                                                    <span class="badge bg-primary">
+                                                        👤 Я → {{ rel.get_relationship_type_display }}
+                                                    </span>
+                                                </li>
+                                            {% endif %}
+                                        {% endfor %}
+
+                                        {% for rel in relative.outgoing_relationships.all %}
+                                            {% if rel.person_to.user == request.user %}
+                                                <li>
+                                                    <span class="badge bg-success">
+                                                        👤 {{ rel.get_relationship_type_display }} → меня
+                                                    </span>
+                                                </li>
+                                            {% endif %}
+                                        {% endfor %}
+
+                                        <!-- Если связей нет -->
+                                        {% if not relative.incoming_relationships.all and not relative.outgoing_relationships.all %}
+                                            <li>
+                                                <span class="badge bg-warning text-dark">
+                                                    ⚠️ Нет связей с вами
+                                                </span>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+
+                                <div class="btn-group w-100 mt-3">
+                                    <a href="{% url 'edit_relative' relative.id %}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        ✏️ Редактировать
+                                    </a>
+                                    <a href="{% url 'add_relationship' relative.id %}"
+                                       class="btn btn-sm btn-outline-success">
+                                        🔗 Связать
+                                    </a>
+                                    <a href="{% url 'delete_relative' relative.id %}"
+                                       class="btn btn-sm btn-outline-danger"
+                                       onclick="return confirm('Удалить {{ relative.get_full_name }} из вашего списка?')">
+                                        🗑️ Удалить
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="card-footer text-muted">
+                                <small>ID: {{ relative.id }} • Создан: {{ relative.date_created|date:"d.m.Y" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Статистика -->
+            <div class="alert alert-info mt-3">
+                <strong>Статистика:</strong> Всего родственников: {{ relatives|length }}
+            </div>
+
+        {% else %}
+            <div class="alert alert-info">
+                <h4 class="alert-heading">🌟 У вас пока нет родственников!</h4>
+                <p>Начните создавать ваше семейное древо с добавления первого родственника.</p>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-grid">
+                            <a href="{% url 'add_relative' %}" class="btn btn-primary btn-lg">
+                                ➕ Добавить родственника
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-grid">
+                            <a href="{% url 'profile_view' %}" class="btn btn-outline-secondary btn-lg">
+                                ✏️ Заполнить свой профиль
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

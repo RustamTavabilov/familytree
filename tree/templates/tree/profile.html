@@ -1,0 +1,68 @@
+{% extends 'tree/base.html' %}
+
+{% block title %}Мой профиль{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h3>Мой профиль</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="id_last_name" class="form-label">Фамилия</label>
+                            <input type="text" name="last_name" class="form-control" id="id_last_name" value="{{ profile.last_name }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="id_first_name" class="form-label">Имя</label>
+                            <input type="text" name="first_name" class="form-control" id="id_first_name" value="{{ profile.first_name }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="id_patronymic" class="form-label">Отчество</label>
+                            <input type="text" name="patronymic" class="form-control" id="id_patronymic" value="{{ profile.patronymic }}">
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="id_birth_date" class="form-label">Дата рождения</label>
+                            <input type="date" name="birth_date" class="form-control" id="id_birth_date" value="{{ profile.birth_date|date:'Y-m-d' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_birth_place" class="form-label">Место рождения</label>
+                            <input type="text" name="birth_place" class="form-control" id="id_birth_place" value="{{ profile.birth_place }}">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_job" class="form-label">Место работы</label>
+                        <input type="text" name="job" class="form-control" id="id_job" value="{{ profile.job }}">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_position" class="form-label">Должность</label>
+                        <input type="text" name="position" class="form-control" id="id_position" value="{{ profile.position }}">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_education" class="form-label">Образование</label>
+                        <textarea name="education" class="form-control" id="id_education" rows="2">{{ profile.education }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_hobbies" class="form-label">Хобби</label>
+                        <textarea name="hobbies" class="form-control" id="id_hobbies" rows="2">{{ profile.hobbies }}</textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">Сохранить изменения</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends 'tree/base.html' %}
+
+{% block title %}Моя анкета{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">👑 Моя анкета</h3>
+                <a href="{% url 'profile_edit' %}" class="btn btn-primary btn-sm">
+                    ✏️ Редактировать
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Основная информация</h5>
+                        <table class="table table-borderless">
+                            <tr>
+                                <th>Фамилия:</th>
+                                <td>{{ profile.last_name|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Имя:</th>
+                                <td>{{ profile.first_name|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Отчество:</th>
+                                <td>{{ profile.patronymic|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Дата рождения:</th>
+                                <td>{{ profile.birth_date|date:"d.m.Y"|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Место рождения:</th>
+                                <td>{{ profile.birth_place|default:"-" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Дополнительная информация</h5>
+                        <table class="table table-borderless">
+                            <tr>
+                                <th>Место работы:</th>
+                                <td>{{ profile.job|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Должность:</th>
+                                <td>{{ profile.position|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Образование:</th>
+                                <td>{{ profile.education|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Хобби:</th>
+                                <td>{{ profile.hobbies|default:"-" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends 'tree/base.html' %}
+
+{% block title %}Добавить родственника{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>Добавить родственника</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="alert alert-info">
+                        <strong>Кого добавляем?</strong> Укажите, кем вам приходится этот человек.
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Кем приходится вам?</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="relationship_type" id="rel_mother" value="mother" checked>
+                                    <label class="form-check-label" for="rel_mother">
+                                        Мать
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="relationship_type" id="rel_father" value="father">
+                                    <label class="form-check-label" for="rel_father">
+                                        Отец
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="relationship_type" id="rel_son" value="son">
+                                    <label class="form-check-label" for="rel_son">
+                                        Сын
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="relationship_type" id="rel_daughter" value="daughter">
+                                    <label class="form-check-label" for="rel_daughter">
+                                        Дочь
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="relationship_type" id="rel_brother" value="brother">
+                                    <label class="form-check-label" for="rel_brother">
+                                        Брат
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="relationship_type" id="rel_sister" value="sister">
+                                    <label class="form-check-label" for="rel_sister">
+                                        Сестра
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="relationship_type" id="rel_spouse" value="spouse">
+                                    <label class="form-check-label" for="rel_spouse">
+                                        Супруг/Супруга
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <h5 class="mb-3">Анкета родственника</h5>
+                    
+                    {{ form.as_p }}
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a href="{% url 'relatives_list' %}" class="btn btn-secondary me-md-2">Отмена</a>
+                        <button type="submit" class="btn btn-success">Сохранить родственника</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

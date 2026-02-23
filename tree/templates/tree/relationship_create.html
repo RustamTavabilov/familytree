@@ -1,0 +1,58 @@
+{% extends 'tree/base.html' %}
+
+{% block title %}Создание связи{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>➕ Создание родственной связи</h3>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <strong>Как это работает:</strong><br>
+                    1. Выберите человека из списка<br>
+                    2. Выберите его родственника<br>
+                    3. Укажите, кем родственник приходится этому человеку
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Человек:</label>
+                        {{ form.person_from }}
+                        <div class="form-text">Кого связываем?</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Тип родства:</label>
+                        {{ form.relationship_type }}
+                        <div class="form-text">Кем приходится родственник этому человеку?</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Родственник:</label>
+                        {{ form.person_to }}
+                        <div class="form-text">С кем связываем?</div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <strong>Примеры:</strong><br>
+                        • Чтобы указать, что "Иван" - мать "Марии", выберите:<br>
+                          Человек: Мария, Тип: Мать, Родственник: Иван<br>
+                        • Чтобы указать, что "Петр" - брат "Сергея", выберите:<br>
+                          Человек: Сергей, Тип: Брат, Родственник: Петр
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'relationships_list' %}" class="btn btn-secondary">Отмена</a>
+                        <button type="submit" class="btn btn-success">Создать связь</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends 'tree/base.html' %}
+
+{% block title %}Главная{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 text-center">
+        <h1 class="display-4 mb-4">🌳 Родословное древо</h1>
+        <p class="lead mb-4">
+            Создайте свое семейное древо, добавляйте родственников и стройте связи между ними
+        </p>
+
+        {% if user.is_authenticated %}
+            <div class="row mt-5">
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">👤 Моя анкета</h5>
+                            <p class="card-text">Заполните информацию о себе</p>
+                            <a href="{% url 'profile_edit' %}" class="btn btn-primary">Перейти</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">📋 Анкеты</h5>
+                            <p class="card-text">Создавайте анкеты родственников</p>
+                            <a href="{% url 'profiles_list' %}" class="btn btn-primary">Перейти</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">🌳 Древо</h5>
+                            <p class="card-text">Визуализируйте ваше семейное древо</p>
+                            <a href="{% url 'tree_visualization' %}" class="btn btn-primary">Перейти</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="mt-5">
+                <a href="{% url 'login' %}" class="btn btn-primary btn-lg me-2">Войти</a>
+                <a href="{% url 'register' %}" class="btn btn-success btn-lg">Зарегистрироваться</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

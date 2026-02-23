@@ -1,0 +1,36 @@
+# Виртуальное окружение Python
+venv/
+.env
+.venv/
+env/
+ENV/
+
+# Файлы базы данных
+*.sqlite3
+*.db
+*.sqlite
+
+# Папки с кэшем Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python/
+
+# Папки с медиафайлами (если будут)
+/media/
+/staticfiles/
+
+# Файлы настроек IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Логи и временные файлы
+*.log
+*.pot
+*.pid
+*.seed

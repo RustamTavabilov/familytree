@@ -1,0 +1,68 @@
+{% extends 'tree/base.html' %}
+
+{% block title %}Все связи{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>🔗 Все связи</h1>
+    <a href="{% url 'relationship_create' %}" class="btn btn-success">
+        ➕ Создать связь
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Родственные связи между анкетами</h5>
+            </div>
+            <div class="card-body">
+                {% if relationships %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Человек</th>
+                                    <th>Тип связи</th>
+                                    <th>Родственник</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for rel in relationships %}
+                                    <tr>
+                                        <td>{{ rel.id }}</td>
+                                        <td>{{ rel.person_from.get_full_name }}</td>
+                                        <td>
+                                            <span class="badge bg-info">
+                                                {{ rel.get_relationship_type_display }}
+                                            </span>
+                                        </td>
+                                        <td>{{ rel.person_to.get_full_name }}</td>
+                                        <td>
+                                            <a href="{% url 'relationship_delete' rel.id %}" class="btn btn-sm btn-danger"
+                                               onclick="return confirm('Удалить эту связь?')">
+                                                🗑️ Удалить
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info mb-0">
+                        <h5 class="alert-heading">Связей пока нет</h5>
+                        <p>Создайте связи между анкетами, чтобы построить родословное древо.</p>
+                        <hr>
+                        <a href="{% url 'relationship_create' %}" class="btn btn-primary">
+                            ➕ Создать первую связь
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

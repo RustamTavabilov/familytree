@@ -1,0 +1,67 @@
+{% extends 'tree/base.html' %}
+
+{% block title %}Все анкеты{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>📋 Все анкеты</h1>
+    <a href="{% url 'profile_create' %}" class="btn btn-success">
+        ➕ Создать анкету
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Мои анкеты (без связей)</h5>
+            </div>
+            <div class="card-body">
+                {% if profiles %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>ФИО</th>
+                                    <th>Дата рождения</th>
+                                    <th>Место рождения</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for profile in profiles %}
+                                    <tr>
+                                        <td>{{ profile.id }}</td>
+                                        <td>{{ profile.get_full_name }}</td>
+                                        <td>{{ profile.birth_date|date:"d.m.Y"|default:"-" }}</td>
+                                        <td>{{ profile.birth_place|default:"-" }}</td>
+                                        <td>
+                                            <a href="{% url 'profile_update' profile.id %}" class="btn btn-sm btn-primary">
+                                                ✏️ Ред.
+                                            </a>
+                                            <a href="{% url 'profile_delete' profile.id %}" class="btn btn-sm btn-danger" 
+                                               onclick="return confirm('Удалить анкету? Связи тоже удалятся.')">
+                                                🗑️ Уд.
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info mb-0">
+                        <h5 class="alert-heading">Анкет пока нет</h5>
+                        <p>Создайте анкеты ваших родственников, чтобы потом связать их.</p>
+                        <hr>
+                        <a href="{% url 'profile_create' %}" class="btn btn-primary">
+                            ➕ Создать первую анкету
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
