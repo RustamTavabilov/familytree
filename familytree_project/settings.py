@@ -25,7 +25,13 @@ SECRET_KEY = 'django-insecure-4j+-ajx=or&&y@8v@1^!)ice30wycv*@&+8@oa1df!vi0ubg+!
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    '192.168.0.16',
+    'tavabilovrr.synology.me',
+    '79.105.153.239',  # внешний IP
+]
 
 
 # Application definition
